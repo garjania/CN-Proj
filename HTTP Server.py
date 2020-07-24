@@ -15,10 +15,6 @@ MSSG = {'400': 'Bad Request',
         '405': 'Method Not Allowed',
         '404': 'Not Found',
         '200': 'OK'}
-CONTENTS = {'400': 'BITCH',
-            '501': 'UWU',
-            '405': 'NUT',
-            '404': 'NIGGA'}
 TYPES = {'html': 'text/html',
          'txt': 'text/plain',
          'png': 'image/png',
@@ -30,9 +26,59 @@ class Client(threading.Thread):
         threading.Thread.__init__(self)
         self.addr = addr
         self.sock = sock
-        self.log = '[{date}] "{request}" "{response}"'
+        self.log = ''
         self.timer = None
         self.close = False
+
+    def build_response(self, code, content, content_type, encoded):
+        date = format_date_time(mktime(datetime.now().timetuple()))
+        self.log = '[{date}] '.format(date=date) + self.log
+        self.log = self.log + ' "HTTP/1.0 {code} {message}"'.format(code=code, message=MSSG[code])
+        response = 'HTTP/1.0 {code} {message}\r\n'.format(code=code, message=MSSG[code])
+        response += 'Connection: close\r\n'
+        response += 'Content-Length: {length}\r\n'.format(length=len(content))
+        response += 'Content-Type: {type}\r\n'.format(type=content_type)
+        if encoded:
+            response += 'Content-Encoding: gzip\r\n'
+        response += 'Date: {date}\r\n\r\n'.format(date=date)
+        response = bytearray(response, 'utf-8')
+        if type(content) == str:
+            content = bytearray(content, 'utf-8')
+        response += content
+        return response
+    
+    def read_file(self, path, request):
+        f = open(path, 'rb')
+        content = f.read()
+        encoded = False
+        if 'gzip' in request['Accept-Encoding']:
+            content = gzip.compress(content)
+            encoded = True
+        return content, encoded
+    
+    def fetch_url(self, request):
+        url = request['URL']
+        if not os.path.isfile('.{}'.format(url)):
+            raise Exception('404')
+        url = url[1:]
+        content, encoded = self.read_file(url, request)
+        file_type = url.split('.')[1]
+        content_type = TYPES[file_type]
+        return content, content_type, encoded
+    
+    def http_response(self, code, request):
+        encoded = False
+        if code != '200':
+            content, encoded = self.read_file('Errors/' + code + '.html', request)
+            content_type = 'text/html'
+        else:
+            try:
+                content, content_type, encoded = self.fetch_url(request)
+            except Exception as e:
+                code = str(e)
+                content, encoded = self.read_file('Errors/' + code + '.html', request)
+                content_type = 'text/html'
+        return self.build_response(code, content, content_type, encoded)
     
     def analyze_http_req(self, request):
         headers = request.split('\r\n')
@@ -63,52 +109,6 @@ class Client(threading.Thread):
         else:
             request_dict['Keep-Alive'] = 60
         return request_dict
-    
-    def fetch_url(self, request):
-        url = request['URL']
-        if not os.path.isfile('.{}'.format(url)):
-            raise Exception('404')
-        url = url[1:]
-        f = open(url, 'rb')
-        content = f.read()
-        encoded = False
-        if 'gzip' in request['Accept-Encoding']:
-            content = gzip.compress(content)
-            encoded = True
-        file_type = url.split('.')[1]
-        content_type = TYPES[file_type]
-        return content, content_type, encoded
-    
-    def http_response(self, code, request):
-        encoded = False
-        if code != '200':
-            content = CONTENTS[code]
-            content_type = 'text/html'
-        else:
-            try:
-                content, content_type, encoded = self.fetch_url(request)
-            except Exception as e:
-                code = str(e)
-                content = CONTENTS[code]
-                content_type = 'text/html'
-        return self.build_response(code, content, content_type, encoded)
-
-    def build_response(self, code, content, content_type, encoded):
-        date = format_date_time(mktime(datetime.now().timetuple()))
-        self.log = '[{date}] '.format(date=date) + self.log
-        self.log = self.log + ' "HTTP/1.0 {code} {message}"'.format(code=code, message=MSSG[code])
-        response = 'HTTP/1.0 {code} {message}\r\n'.format(code=code, message=MSSG[code])
-        response += 'Connection: close\r\n'
-        response += 'Content-Length: {length}\r\n'.format(length=len(content))
-        response += 'Content-Type: {type}\r\n'.format(type=content_type)
-        if encoded:
-            response += 'Content-Encoding: gzip\r\n'
-        response += 'Date: {date}\r\n\r\n'.format(date=date)
-        response = bytearray(response, 'utf-8')
-        if type(content) == str:
-            content = bytearray(content, 'utf-8')
-        response += content
-        return response
     
     def close_socket(self):
         self.close = True
