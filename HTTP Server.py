@@ -8,8 +8,8 @@ from time import mktime
 
 HOST = 'localhost'
 PORT = 8080
-ADDR = (HOST,PORT)
-BUFSIZE = 4096
+ADDR = (HOST, PORT)
+BUFF_SIZE = 4096
 MSSG = {'400': 'Bad Request',
         '501': 'Not Implemented',
         '405': 'Method Not Allowed',
@@ -20,6 +20,7 @@ TYPES = {'html': 'text/html',
          'png': 'image/png',
          'jpeg': 'image/jpeg',
          'jpg': 'image/jpg'}
+
 
 class Client(threading.Thread):
     def __init__(self, sock, addr):
@@ -46,7 +47,7 @@ class Client(threading.Thread):
             content = bytearray(content, 'utf-8')
         response += content
         return response
-    
+
     def read_file(self, path, request):
         f = open(path, 'rb')
         content = f.read()
@@ -55,7 +56,7 @@ class Client(threading.Thread):
             content = gzip.compress(content)
             encoded = True
         return content, encoded
-    
+
     def fetch_url(self, request):
         url = request['URL']
         if not os.path.isfile('.{}'.format(url)):
@@ -65,7 +66,7 @@ class Client(threading.Thread):
         file_type = url.split('.')[1]
         content_type = TYPES[file_type]
         return content, content_type, encoded
-    
+
     def http_response(self, code, request):
         encoded = False
         if code != '200':
@@ -79,12 +80,12 @@ class Client(threading.Thread):
                 content, encoded = self.read_file('Errors/' + code + '.html', request)
                 content_type = 'text/html'
         return self.build_response(code, content, content_type, encoded)
-    
+
     def analyze_http_req(self, request):
         headers = request.split('\r\n')
         request_dict = dict()
         self.log = '"{request}"'.format(request=headers[0])
-        request_info =  headers[0].split()
+        request_info = headers[0].split()
         if len(request_info) != 3:
             raise Exception('400')
         request_dict['METHOD'] = request_info[0]
@@ -109,22 +110,22 @@ class Client(threading.Thread):
         else:
             request_dict['Keep-Alive'] = 60
         return request_dict
-    
+
     def close_socket(self):
         self.close = True
 
     def setup_timer(self, request):
         if self.timer is None:
             self.timer = threading.Timer(request['Keep-Alive'], self.close_socket)
-        elif request['Keep-Alive'] > 0 :
+        elif request['Keep-Alive'] > 0:
             self.timer.cancle()
             self.timer = threading.Timer(request['Keep-Alive'], self.close_socket)
         self.timer.start()
 
     def run(self):
         while not self.close:
-            data = self.sock.recv(BUFSIZE)
-            if not data: 
+            data = self.sock.recv(BUFF_SIZE)
+            if not data:
                 continue
             code = '200'
             request = None
@@ -138,7 +139,8 @@ class Client(threading.Thread):
             self.log = ''
         self.sock.close()
 
-if __name__=='__main__':
+
+if __name__ == '__main__':
     serv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     serv.bind(ADDR)
     serv.listen()
