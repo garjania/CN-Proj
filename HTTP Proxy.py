@@ -46,7 +46,6 @@ class Client(threading.Thread):
         request_list = data.split('\r\n')
         # print(request_list)
         hostname, port = self.get_hostname_and_port(request_list[0].split(" ")[1])
-        print(format_date_time(mktime(datetime.now().timetuple())))
         log = 'Request: [{time}] [{client_ip}:{client_port}] [{host_name}:{host_port}] "{request_line}"' \
             .format(time=format_date_time(mktime(datetime.now().timetuple())),
                     client_ip=self.addr[0], client_port=self.addr[1],
