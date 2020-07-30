@@ -59,6 +59,8 @@ class Client(threading.Thread):
 
     def fetch_url(self, request):
         url = request['URL']
+        if url == '/':
+            url = '/HTML/index.html'
         if not os.path.isfile('.{}'.format(url)):
             raise Exception('404')
         url = url[1:]
@@ -70,14 +72,14 @@ class Client(threading.Thread):
     def http_response(self, code, request):
         encoded = False
         if code != '200':
-            content, encoded = self.read_file('Errors/' + code + '.html', request)
+            content, encoded = self.read_file('HTML/' + code + '.html', request)
             content_type = 'text/html'
         else:
             try:
                 content, content_type, encoded = self.fetch_url(request)
             except Exception as e:
                 code = str(e)
-                content, encoded = self.read_file('Errors/' + code + '.html', request)
+                content, encoded = self.read_file('HTML/' + code + '.html', request)
                 content_type = 'text/html'
         return self.build_response(code, content, content_type, encoded)
 
