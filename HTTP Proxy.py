@@ -134,7 +134,7 @@ class Client(threading.Thread):
         while True:
             try:
                 data = socket_to_host.recv(BUFF_SIZE)
-            except socket.timeout:
+            except (socket.timeout, ConnectionResetError) as e:
                 break
             if len(data) == 0:
                 break
@@ -144,14 +144,14 @@ class Client(threading.Thread):
                     .format(time=format_date_time(mktime(datetime.now().timetuple())),
                             client_ip=self.addr[0], client_port=self.addr[1],
                             host_name=self.hostname, host_port=self.host_port,
-                            status_line=str(data, 'utf-8').split("\r\n")[0], request_line=request_list[0])
+                            status_line=data.decode ('utf-8', 'ignore').split("\r\n")[0], request_line=request_list[0])
                 print(log)
                 is_header = False
             response += bytearray(data)
         self.sock.send(response)
         socket_to_host.close()
         self.close = True
-        self.process_response_for_telnet(str(response, 'utf-8'))
+        self.process_response_for_telnet(response.decode ('utf-8', 'ignore'))
 
     def run(self):
         while not self.close:
