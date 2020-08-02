@@ -29,22 +29,30 @@ class Data:
                              '400 Bad Request': 0, '404 Not Found': 0, '405 Method Not Allowed': 0,
                              '501 Not Implemented': 0}
         self.hosts = {}
+        self.lock1 = threading.Lock()
+        self.lock2 = threading.Lock()
+        self.lock3 = threading.Lock()
 
     def increase_host_reqs(self, host):
+        self.lock1.acquire()
         if host in self.hosts.keys():
             self.hosts[host] = self.hosts[host] + 1
         else:
             self.hosts[host] = 1
+        self.lock1.release()
 
     def add_request(self, length):
+        self.lock2.acquire()
         self.n_req += 1
         last_mean = self.mean_req
         self.mean_req = (self.mean_req * (self.n_req - 1) + length) / self.n_req
         if self.n_req > 1:
             self.std_req = \
                 math.sqrt(((self.std_req ** 2 + last_mean ** 2) * (self.n_req - 1) + (length ** 2)) / self.n_req - self.mean_req ** 2)
+        self.lock2.release()
 
     def add_response(self, length, body_length, status_code, msg_type):
+        self.lock3.acquire()
         self.n_res += 1
         last_mean = self.mean_res
         last_mean_body = self.mean_body
@@ -59,6 +67,7 @@ class Data:
             self.status_count[status_code] = self.status_count[status_code] + 1
         if msg_type in self.types_count.keys():
             self.types_count[msg_type] = self.types_count[msg_type] + 1
+        self.lock3.release()
 
     def get_sorted_hosts(self):
         hosts_list = []
@@ -148,6 +157,7 @@ class Client(threading.Thread):
                 print(log)
                 is_header = False
             response += bytearray(data)
+        print(str(response, 'utf-8'))
         self.sock.send(response)
         socket_to_host.close()
         self.close = True
