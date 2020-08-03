@@ -83,7 +83,7 @@ class Client(threading.Thread):
                 content_type = 'text/html'
         return self.build_response(code, content, content_type, encoded)
 
-    def analyze_http_req(self, request):
+    def parse_http_req(self, request):
         headers = request.split('\r\n')
         request_dict = dict()
         self.log = '"{request}"'.format(request=headers[0])
@@ -132,10 +132,10 @@ class Client(threading.Thread):
             code = '200'
             request = None
             try:
-                request = self.analyze_http_req(str(data, 'utf-8'))
+                request = self.parse_http_req(str(data, 'utf-8'))
+                self.setup_timer(request)
             except Exception as e:
                 code = str(e)
-            self.setup_timer(request)
             self.sock.send(self.http_response(code, request))
             print(self.log)
             self.log = ''
