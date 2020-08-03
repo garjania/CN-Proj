@@ -4,7 +4,7 @@ import os
 import gzip
 from wsgiref.handlers import format_date_time
 from datetime import datetime
-from time import mktime
+from time import mktime, sleep
 
 HOST = 'localhost'
 PORT = 8080
@@ -30,6 +30,8 @@ class Client(threading.Thread):
         self.log = ''
         self.timer = None
         self.close = False
+        self.requests_lock = threading.Lock()
+        self.requests = list()
 
     def build_response(self, code, content, content_type, encoded):
         date = format_date_time(mktime(datetime.now().timetuple()))
@@ -136,6 +138,7 @@ class Client(threading.Thread):
                 self.setup_timer(request)
             except Exception as e:
                 code = str(e)
+            sleep(5)
             self.sock.send(self.http_response(code, request))
             print(self.log)
             self.log = ''
