@@ -2,7 +2,7 @@ import re
 import socket
 import threading
 from datetime import datetime
-from time import mktime
+from time import mktime, sleep
 from wsgiref.handlers import format_date_time
 import math
 
@@ -157,7 +157,7 @@ class Client(threading.Thread):
                 print(log)
                 is_header = False
             response += bytearray(data)
-        print(str(response, 'utf-8'))
+        # sleep(5)
         self.sock.send(response)
         socket_to_host.close()
         self.close = True

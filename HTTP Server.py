@@ -138,7 +138,7 @@ class Client(threading.Thread):
                 self.setup_timer(request)
             except Exception as e:
                 code = str(e)
-            sleep(5)
+            # sleep(5)
             self.sock.send(self.http_response(code, request))
             print(self.log)
             self.log = ''
